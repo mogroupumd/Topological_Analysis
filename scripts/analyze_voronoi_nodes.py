@@ -12,22 +12,23 @@ from pymatgen.io.cif import CifParser, CifWriter
 from pymatgen.core.periodic_table import Specie, Element
 from pymatgen.core.composition import Composition
 
-# Voronoi Analyzer dependencies
-from VoronoiAnalyzer.filters import *
-# VAPercolateFilter, VABvFilter, VALongFilter, VAOptimumSiteFilter, VACoulombReplusionFilter, OxidationStateFilter,
-# VADenseNeighbor
+# Topological Analyzer dependencies
+from Topological_Analyzer.filters import *
+from Topological_Analyzer.PyVMD import cmd_by_radius
+# TAPercolateFilter, TABvFilter, TALongFilter, TAOptimumSiteFilter, TACoulombReplusionFilter, OxidationStateFilter,
+# TADenseNeighbor
 
 __author__ = "Xingfeng He, Yunsheng Liu"
 __copyright__ = "Copyright 2019, UMD Mo. Group"
 __version__ = "0.2"
 __maintainer__ = "Yunsheng Liu"
 __email__ = "yliu1240@umd.edu"
-__date__ = "Apr 23rd, 2019"
+__date__ = "Jun 21st, 2019"
 
 # Preparation
 yaml = YAML()
 
-# customized directory to specify VoronoiAnalyzer is if it's not in PYTHONPATH or other python directory
+# customized directory to specify Topological_Analyzer is if it's not in PYTHONPATH or other python directory
 # base_dir = '/Users/yunshengliu'
 # if not base_dir in sys.path:
 #     sys.path.append(base_dir)
@@ -60,12 +61,8 @@ def Analyze_Voronoi_Nodes(args):
                                               Currently support following anions:
                                                                |   BV_LW   |   BV_UP   |   R_CUT(A)   |
                                                   ------------------------------------------------------
-                                                  S (sulfur)   |    0.4    |    1.1    |      1.5     |
+                                                  S (sulfur)   |    0.4    |    1.1    |      2.5     |
                                                   O (oxygen)   |    0.5    |    1.2    |      2.3     |
-                                                  F (fluorine) |    0.1    |    1.55   |      2.2     |
-                                                  Cl (chlorine)|    0.45   |    0.95   |      2.6     |
-                                                  Br (bromine) |    0.4    |    1.05   |      2.6     |
-                                                  I (iodine)   |    0.15   |    0.95   |      2.8     |
                                               
                                     VoroPerco:
                                     3. PERCO_R: the percolation radius for diffusion specie;
@@ -85,26 +82,27 @@ def Analyze_Voronoi_Nodes(args):
         args.filters (str): strings to specify which filter to use in analysis:
         
                             FILTER: filters applied. Currently support following filters:
+                                    Ordered: OrderFrameworkFilter
                                     PropOxi: OxidationStateFilter
-                                    VoroPerco: VAPercolateFilter
-                                    Coulomb: VACoulombReplusionFilter
-                                    VoroBV: VABvFilter
-                                    VoroLong: VALongFilter
+                                    VoroPerco: TAPercolateFilter
+                                    Coulomb: TACoulombReplusionFilter
+                                    VoroBV: TABvFilter
+                                    VoroLong: TALongFilter
                                     MergeSite: OptimumSiteFilter
-                                    VoroInfo: VALongFilter, but only output the center coordinates and length of each node
+                                    VoroInfo: TALongFilter, but only output the center coordinates and length of each node
                                 
     Output:
         CIF files after applying each filter. The predicted sites for target specie will be represented as sites with 50%
         partial occupancy.
         Note that some filters may be fundamental (decide whether they're good CIFs or not) and they may have
         no output structures.
-        e.g. if applying OxidationStateFilter, VAPercolateFilter and VABvFilter,
+        e.g. if applying OxidationStateFilter, TAPercolateFilter and TABvFilter,
              there will be 2 output CIF files:
                  1. CIF with all accessible sites;
                  2. CIF with all sites having good bond valence;
              OxidationStateFilter has no ouput structure.
     """
-    import VoronoiAnalyzer
+    import Topological_Analyzer
     
     # built-in radius for different species
     va_dir = os.path.dirname(VoronoiAnalyzer.__file__)
@@ -116,7 +114,7 @@ def Analyze_Voronoi_Nodes(args):
     # read structure from CIF file
     name = args.cif_file[:-4] # the last 4 characters are '.cif'
     precif = CifParser(args.cif_file, occupancy_tolerance=2.0)
-    org_structure = precif.get_structures(primitive = False)[0].copy()
+    structure = precif.get_structures(primitive = False)[0].copy()
     # for input parameter file
     with open(args.input_file, 'r') as f:
         input_parameters = yaml.load(f)
@@ -129,24 +127,14 @@ def Analyze_Voronoi_Nodes(args):
     if 'ANION' in input_parameters.keys():
         if input_parameters['ANION'].lower() == 's':
             bv_range = (0.4, 1.1)
-            rc = 1.5
+            rc = 2.5
         elif input_parameters['ANION'].lower() == 'o':
             bv_range = (0.5, 1.2)
             rc = 2.3
-        elif input_parameters['ANION'].lower() == 'f':
-            bv_range = (0.1, 1.55)
-            rc = 2.2
-        elif input_parameters['ANION'].lower() == 'cl':
-            bv_range = (0.45, 0.95)
-            rc = 2.6
-        elif input_parameters['ANION'].lower() == 'br':
-            bv_range = (0.4, 1.05)
-            rc = 2.6
-        elif input_parameters['ANION'].lower() == 'i':
-            bv_range = (0.15, 0.95)
-            rc = 2.8
         else:
             print '##    Unsupported anion type: {}'.format(input_parameters['ANION'])
+            bv_range = (0, 1.5)
+            rc = 2.0
             
     if 'PERCO_R' in input_parameters.keys():
         pr = input_parameters['PERCO_R'] # percolation radius
@@ -187,12 +175,22 @@ def Analyze_Voronoi_Nodes(args):
     
     # temporary parameters for filters applied
     frame_structure = None
+    org_frame = None
     node_structure = None
     predicted_structure = None
     
     for f_index, f in enumerate(args.filters):
         print 'Step {}: {}'.format(f_index, f)
         
+        if f.lower() == 'ordered':
+            # Check whether the framework is ordered or not.
+            print '#     Check framework disordering.'
+            orderFrame = OrderFrameworkFilter(structure.copy(), radii, sp)
+            org_structure = orderFrame.virtual_structure.copy()
+            frame_structure = orderFrame.virtual_framework.copy()
+            org_frame = orderFrame.framework.copy()
+            print '#     Check finishes.'
+            
         if f.lower() == 'propoxi':
             # Check oxidation states in structures. This is necessary for bond valence filter.
             print '#     Check oxidation states in structure.'
@@ -207,7 +205,7 @@ def Analyze_Voronoi_Nodes(args):
             # Check whether there's enough space for percolation.
             print '#     Check Voronoi percolation raduis.'
             if pr:
-                VoroPerco = VAPercolateFilter(org_structure.copy(), radii, sp, pr)
+                VoroPerco = TAPercolateFilter(org_structure.copy(), radii, sp, pr)
             else:
                 print '##    No percolation radius provided...'
                 sys.exit()
@@ -227,9 +225,8 @@ def Analyze_Voronoi_Nodes(args):
                     To see other results, please use 'analysis_keys' attribute of the class.
                 """
                 results = deepcopy(VoroPerco.analysis_results)
-                frame_structure = results['Framework'].copy()
                 print '#     Percolation diameter (A): {}'.format(round(results['free_sph_max_dia'], 3))
-                output_structure = frame_structure.copy()
+                output_structure = org_frame.copy()
                 if results['Voronoi_accessed_node_structure']:
                     node_structure = results['Voronoi_accessed_node_structure'].copy()
                     for nodes in node_structure.copy():
@@ -254,10 +251,10 @@ def Analyze_Voronoi_Nodes(args):
                     ion = 'cation'
                 print '#     Processing Coulomb replusion check.'
                 print '#     {} effect detected, minimum distance to {}s is {} A.'.format(ion, ion, round(rc, 3))
-                CoulRep = VACoulombReplusionFilter(node_structure.copy(), frame_structure.copy(), prune=ion, min_d_to_ion=rc)
+                CoulRep = TACoulombReplusionFilter(node_structure.copy(), frame_structure.copy(), prune=ion, min_d_to_ion=rc)
                 if CoulRep.final_structure:
                     node_structure = CoulRep.final_structure.copy()
-                    output_structure = frame_structure.copy()
+                    output_structure = org_frame.copy()
                     for node in node_structure.copy():
                         output_structure.append(str(sp), node.coords, coords_are_cartesian=True)
                     CifWriter(output_structure).write_file('{}_coulomb_filtered.cif'.format(name))
@@ -279,10 +276,10 @@ def Analyze_Voronoi_Nodes(args):
                 print '#     Processing bond valence check.'
                 print '#     Bond valence limitation: {} - {}'.format(bv_range[0], bv_range[1])
 
-                VoroBv = VABvFilter(node_structure.copy(), frame_structure.copy(), bv_range)
+                VoroBv = TABvFilter(node_structure.copy(), frame_structure.copy(), bv_range)
                 if VoroBv.final_structure:
                     node_structure = VoroBv.final_structure.copy()
-                    output_structure = frame_structure.copy() # output cif structure
+                    output_structure = org_frame.copy() # output cif structure
                     output_doc = {} # output csv file
                     variables = ['Cartesian_Coords', 'Voronoi_R', 'Bond_Valence']
                     for i in variables:
@@ -316,7 +313,7 @@ def Analyze_Voronoi_Nodes(args):
             else:
                 print '#     Processing Voronoi length check.'
                 print '#     Voronoi length limitation: {} A'.format(round(long, 3))
-                VoroLong = VALongFilter(node_structure.copy(), long, use_voro_radii=True)
+                VoroLong = TALongFilter(node_structure.copy(), long, use_voro_radii=True)
                 print '#     Maximum node length detected: {} A'.format(round(VoroLong.longest_node_length, 3))
                 output_doc = {}
                 variables = ['Center_Coords', 'Node_Length']
@@ -343,7 +340,7 @@ def Analyze_Voronoi_Nodes(args):
                 print '##    No node structure provided for Voronoi information...'
                 sys.exit()
             else:
-                VoroLong = VALongFilter(node_structure.copy(), 0, use_voro_radii=True)
+                VoroLong = TALongFilter(node_structure.copy(), 0, use_voro_radii=True)
                 print '#     Maximum node length detected: {} A'.format(round(VoroLong.longest_node_length, 3))
                 output_doc = {}
                 variables = ['Center_Coords', 'Node_Length']
@@ -359,8 +356,8 @@ def Analyze_Voronoi_Nodes(args):
                 print '#     Voronoi node information written.'
                     
         elif f.lower() == 'mergesite':
-            # before we use VAOptimumSiteFilter, we need to have a list of different clusters,
-            # thus must use VADenseNeighbor and VALongFilter. Also note that all clusters in the list must be. 
+            # before we use TAOptimumSiteFilter, we need to have a list of different clusters,
+            # thus must use TADenseNeighbor and TALongFilter. Also note that all clusters in the list must be. 
             if not node_structure:
                 print '##    No node structure provided for optimizing sites...'
                 sys.exit()
@@ -368,9 +365,9 @@ def Analyze_Voronoi_Nodes(args):
                 print '##    No neighbor distance cut-off and long node cut-off provided for site optimization...'
                 sys.exit()
                 
-            voro_dense = VADenseNeighbor(node_structure.copy(), close_criteria=1,
+            voro_dense = TADenseNeighbor(node_structure.copy(), close_criteria=1,
                                          big_node_radius=0, radius_range=[0, 0], use_radii_ratio=True)
-            voro_long = VALongFilter(node_structure.copy(), 0, use_voro_radii=True)
+            voro_long = TALongFilter(node_structure.copy(), 0, use_voro_radii=True)
             cluster_list = voro_dense.clustering(node_structure.copy(), 1, True, True)
             
             long_list = []
@@ -381,7 +378,7 @@ def Analyze_Voronoi_Nodes(args):
                 else:
                     short_list.append(i)
             print '#     Processing site optimization: nearest neighbor cut-off {} A.'.format(round(nn, 3))
-            OpSite = VAOptimumSiteFilter(org_structure.copy(), nn, sp, sort_type='None', use_exp_ordered_site=False)
+            OpSite = TAOptimumSiteFilter(org_structure.copy(), nn, sp, sort_type='None', use_exp_ordered_site=False)
             opt_long_list = []
             opt_short_list = []
             for i in long_list:
@@ -401,8 +398,16 @@ def Analyze_Voronoi_Nodes(args):
                 new_list.append(i)
             OpSite.add_cluster(new_list)
             
-            output_structure = OpSite.final_structure.copy()
-            CifWriter(output_structure).write_file('{}_{}_optimized_sites.cif'.format(name, 'radius'))
+            output_structure = OpSite.site_structure.copy()
+            half_list = [] # it seems 50% occupancy sites are easier to see. You may directly use output_structure otherwise
+            for i in output_structure:
+                ppt = deepcopy(i.properties)
+                new_i = PeriodicSite({str(sp): 0.5}, i.coords, i.lattice, to_unit_cell=False, coords_are_cartesian=True,
+                                     properties=ppt)
+                half_list.append(new_i)
+            half_structure = Structure.from_sites(half_list, charge=None, validate_proximity=False, to_unit_cell=False)
+            CifWriter(half_structure).write_file('{}_{}_optimized_sites.cif'.format(name, 'radius'))
+            # CifWriter(output_structure).write_file('{}_{}_optimized_sites.cif'.format(name, 'radius'))
             
             # for predicted structure:
             tot_num = org_structure.composition[sp]
@@ -412,7 +417,7 @@ def Analyze_Voronoi_Nodes(args):
                 print '##    Prediction error, please be cautious about the predicted results.'
                 print '##    Please also double check whether the input parameters are reasonable...'
                 ratio = 1
-            prediction = frame_structure.copy()
+            prediction = org_frame.copy()
             for site in OpSite.site_structure.copy():
                 prediction.append({str(sp): ratio}, site.coords, coords_are_cartesian=True)
             prediction.sort()
@@ -424,6 +429,11 @@ def Analyze_Voronoi_Nodes(args):
     if predicted_structure:
         comp = org_structure.composition.reduced_formula
         CifWriter(predicted_structure).write_file('{}_{}_predicted.cif'.format(name, comp))
+        cmds = cmd_by_radius(half_structure, 0.5)
+        cmd_file = open('{}_cmd'.format(name), 'w')
+        for lines in cmds:
+            cmd_file.write(lines)
+        cmd_file.close()
         
 if __name__ == '__main__':
     start_time = time.time()
@@ -431,7 +441,7 @@ if __name__ == '__main__':
     parser.add_argument("cif_file", type=str, help='CIF file directory')
     parser.add_argument("-i", "--input_file", type=str, help='Input yaml file to specify different parameters')
     parser.add_argument("-f", "--filters", nargs="+",
-                        default=["PropOxi", "VoroPerco", "Coulomb", "VoroBV", "VoroInfo", "MergeSite"],
+                        default=["Ordered", "PropOxi", "VoroPerco", "Coulomb", "VoroBV", "VoroInfo", "MergeSite"],
                         type=str, help="Default is PropOxi, VoroPerco, Coulomb, VoroBV, VoroInfo, MergeSite"
                                        "Ordered list of filters. Current only support 6 filters."
                                        "Please read README for further information")
