@@ -91,6 +91,84 @@ class GetVoronoiNodes(MSONable):
         return self.node_structure
 
     
+class OrderFrameworkFilter():
+    """
+        Since the Zeo++ cannot deal with disordered structures, we have to order the disordered structure first.
+        Current implementation method is to replace the disordered sites with the specie whose ionic radius is smaller.
+    """
+    def __init__(self, structure, radii_dict, diff_specie):
+        """
+            Args:
+                structure: a Structure object;
+                diff_specie: target diffusion specie;
+                radii_dict: a dictionary which provides all ionic radius of elements
+            
+            ..Attribute::
+                framework: the original framework with disordered sites;
+                virtual_framework: the framework where original disordered sites are replaced by smaller radius species;
+                virtual_structure: the structure where original disordered non-diffusion sites are replaced.
+        """
+        self.original_structure = structure.copy()
+        self.sp = diff_specie
+        self.rd = radii_dict
+        
+        self.framework = self.frame.copy()
+        if self.isordered(self.framework):
+            self.virtual_structure = structure.copy()
+            self.virtual_framework = self.frame.copy()
+        else:
+            self.virtual_framework = self.replace_frame.copy()
+            new_structure = self.replace_frame.copy()
+            for i in self.original_structure.copy():
+                if str(self.sp) in i.species_string:
+                    new_structure.append(i.species_and_occu, i.coords, coords_are_cartesian=True)
+            new_structure.sort()
+            self.virtual_structure = new_structure.copy()
+        
+    def isordered(self, structure):
+        """
+            Check if there's disordered sites in the structure
+        """
+        orders = True
+        for i in structure.copy():
+            if not str(self.sp) in i.species_string:
+                if not i.is_ordered:
+                    orders = False
+                    break
+        return orders
+                    
+    @property
+    def frame(self):
+        frame_list = []
+        for i in self.original_structure.copy():
+            if not str(self.sp) in i.species_string:
+                frame_list.append(i)
+        return Structure.from_sites(frame_list, charge=None, validate_proximity=False, to_unit_cell=False)
+    
+    @property
+    def replace_frame(self):
+        frame_list = []
+        for i in self.original_structure.copy():
+            if not str(self.sp) in i.species_string:
+                if i.is_ordered:
+                    frame_list.append(i)
+                else:
+                    radii_list = []
+                    for sps in i.species_and_occu.keys():
+                        if not sps in self.rd.keys():
+                            print 'Warning! Ionic radius not found: {}'.format(sps)
+                        else:
+                            radii_list.append((sps, self.rd[sps]))
+                    if len(radii_list) > 0:
+                        radii_list = sorted(radii_list, key=lambda k: k[1]) # pick the specie with smallest radius
+                    else:
+                        radii_list.append((i.species_and_occu.keys()[0], 1)) # pick the first specie
+                    new_i = PeriodicSite(radii_list[0][0], i.coords, i.lattice, to_unit_cell=False,
+                                         coords_are_cartesian=True)
+                    frame_list.append(new_i)
+        return Structure.from_sites(frame_list, charge=None, validate_proximity=False, to_unit_cell=False)
+    
+
 class OxidationStateFilter():
     """
         To be convenient, the structure is required to be decorated with proper oxidation states to perform the analysis.
