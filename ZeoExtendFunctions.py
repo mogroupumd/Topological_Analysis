@@ -240,4 +240,3 @@ def get_percolated_node_edge(origin_struct, node_struct, rad_dict, probe_rad):
     else:
         new_node_edge = None
     return new_node_edge
-
