@@ -12,7 +12,7 @@ __date__ = "Jun 12th, 2019"
     Not difficult any way you slice it......
 """
 
-def cmd_by_radius(node_structure, r_cut, molecular_id=1, scale=0.5):
+def cmd_by_radius(node_structure, r_cut, molecular_id=None, scale=0.5):
     """
         To generate Tcl command lines by Voronoi radius of each node.
         
@@ -31,11 +31,14 @@ def cmd_by_radius(node_structure, r_cut, molecular_id=1, scale=0.5):
             continue
         rad = site.properties['voronoi_radius'] * scale
         coords = ' '.join(map(str, site.coords))
-        cmd = 'graphics {} sphere {{{}}} radius {} resolution 20\n'.format(molecular_id, coords, rad)
+        if molecular_id:
+            cmd = 'graphics {} sphere {{{}}} radius {} resolution 20\n'.format(molecular_id, coords, rad)
+        else:
+            cmd = 'draw sphere {{{}}} radius {} resolution 20\n'.format(coords, rad)
         cmds.append(cmd)
     return cmds
 
-def cmd_by_bv(node_structure, molecular_id=1):
+def cmd_by_bv(node_structure, molecular_id=None):
     """
         To generate Tcl command lines by bond valence of each site.
         
@@ -50,11 +53,14 @@ def cmd_by_bv(node_structure, molecular_id=1):
     for site in node_structure:
         bv = round(site.properties['valence_state'], 2)
         coords = ' '.join(map(str, site.coords + np.array([0, 0, 1]))) # change the text coordinate a little bit
-        cmd = 'graphics {} text {{{}}} {}\n'.format(molecular_id, coords, bv)
+        if molecular_id:
+            cmd = 'graphics {} text {{{}}} {}\n'.format(molecular_id, coords, bv)
+        else:
+            cmd = 'draw text {{{}}} {}\n'.format(coords, bv)
         cmds.append(cmd)
     return cmds
 
-def cmd_by_edge(node_structure, r_cut, molecular_id=1, scale=0.5):
+def cmd_by_edge(node_structure, r_cut, molecular_id=None, scale=0.5):
     """
         To generate Tcl command lines by nearest neighbor distance.
         
@@ -83,7 +89,10 @@ def cmd_by_edge(node_structure, r_cut, molecular_id=1, scale=0.5):
                 print 'Site Frac Coords {}; Neighbor Frac Coords {}'.format(site.frac_coords, node_structure[nn[0]].frac_coords)
                 print 'Distance'.format(nn[2])
             end_coords = ' '.join(map(str, end_coords_cart))
-            cmd = 'graphics {} cylinder {{{}}} {{{}}} radius {} resolution 20\n'.format(molecular_id, start_coords, end_coords,
+            if molecular_id:
+                cmd = 'graphics {} cylinder {{{}}} {{{}}} radius {} resolution 20\n'.format(molecular_id, start_coords, end_coords,
                                                                                        rad)
+            else:
+                cmd = 'draw cylinder {{{}}} {{{}}} radius {} resolution 20\n'.format(start_coords, end_coords, rad)
             cmds.append(cmd)
     return cmds
