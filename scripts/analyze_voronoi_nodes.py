@@ -431,6 +431,7 @@ def Analyze_Voronoi_Nodes(args):
         CifWriter(predicted_structure).write_file('{}_{}_predicted.cif'.format(name, comp))
         cmds = cmd_by_radius(half_structure, 0.5)
         cmd_file = open('{}_cmd'.format(name), 'w')
+        cmd_file.write('mol new\n')
         for lines in cmds:
             cmd_file.write(lines)
         cmd_file.close()
