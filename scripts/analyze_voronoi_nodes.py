@@ -405,7 +405,7 @@ def Analyze_Voronoi_Nodes(args):
                 new_i = PeriodicSite({str(sp): 0.5}, i.coords, i.lattice, to_unit_cell=False, coords_are_cartesian=True,
                                      properties=ppt)
                 half_list.append(new_i)
-            half_structure = Structure.from_sites(half_list, charge=None, validate_proximity=False, to_unit_cell=False)
+            half_structure = Structure.from_sites(half_list)
             CifWriter(half_structure).write_file('{}_{}_optimized_sites.cif'.format(name, 'radius'))
             # CifWriter(output_structure).write_file('{}_{}_optimized_sites.cif'.format(name, 'radius'))
             
