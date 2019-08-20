@@ -14,8 +14,8 @@ from collections import Counter
 import time
 import numpy as np
 
-# VoronoiAnalyzer dependencies
-from VoronoiAnalyzer.ZeoExtendFunctions import get_voronoi_percolate_nodes, get_voronoi_node_edge, get_percolated_node_edge
+# Topological_Analysis dependencies
+from Topological_Analysis.ZeoExtendFunctions import get_voronoi_percolate_nodes, get_voronoi_node_edge, get_percolated_node_edge
 
 # Pymatgen dependencies
 from pymatgen.io.zeopp import get_free_sphere_params
@@ -197,7 +197,7 @@ class OxidationStateFilter():
         return f
 
     
-class VAPercolateFilter(MSONable):
+class TAPercolateFilter(MSONable):
     def __init__(self, structure, radii_dict, diff_specie, percolate_r):
         """
             Args:
@@ -317,7 +317,7 @@ class VAPercolateFilter(MSONable):
         return [n for n in self.voronoi_analysis.keys()]
 
 
-class VACoulombReplusionFilter(MSONable):
+class TACoulombReplusionFilter(MSONable):
     """
         A simple filter to eliminate Voronoi nodes which are too close to cations or anions.
         Physically, the strong Coulomb replusion will prevent atom being too close to ions with similar oxidation states.
@@ -402,7 +402,7 @@ class VACoulombReplusionFilter(MSONable):
             return None
 
         
-class VABvFilter(MSONable):
+class TABvFilter(MSONable):
     """
         To restrict the bond valence range of sites in computed Voronoi nodes. The node structure and framework structure can
         be gathered from GetVoronoiNodes() class or VAPercolateFilter() class. The bond valence limitation here is a very good
@@ -463,7 +463,7 @@ class VABvFilter(MSONable):
         else:
             return None
     
-class VADenseNeighbor(MSONable):
+class TADenseNeighbor(MSONable):
     """
         Check neighbors and clustering neighboring nodes in Voronoi node structures.
     """
@@ -721,7 +721,7 @@ class VADenseNeighbor(MSONable):
     def averageNeighborNum(self):
         return self.avg_nn
             
-class VALongFilter(MSONable):
+class TALongFilter(MSONable):
     """
         Check whether the structure has long nodes. The length of nodes are key parameter here.
     """
@@ -745,7 +745,7 @@ class VALongFilter(MSONable):
         self.original_structure = node_structure.copy()
         self.use_voro_radii = use_voro_radii
         
-        voro_dense = VADenseNeighbor(self.original_structure.copy(), close_criteria=1,
+        voro_dense = TADenseNeighbor(self.original_structure.copy(), close_criteria=1,
                                      big_node_radius=0, radius_range=[0, 0], use_radii_ratio=True)
         cluster_list = voro_dense.clustering(self.original_structure.copy(), 1, True, True)
         cluster_info = []
@@ -862,7 +862,7 @@ class VALongFilter(MSONable):
     def clusters(self):
         return self.cluster_info
 
-class VAOptimumSiteFilter(MSONable):
+class TAOptimumSiteFilter(MSONable):
     """
         To optimize the site prediction, making clusters of sites into unique and separated sites.
         There will be several method to decide the priority of all available nodes. Bond valence method will keep the sites
