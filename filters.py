@@ -405,7 +405,7 @@ class TACoulombReplusionFilter(MSONable):
 class TABvFilter(MSONable):
     """
         To restrict the bond valence range of sites in computed Voronoi nodes. The node structure and framework structure can
-        be gathered from GetVoronoiNodes() class or VAPercolateFilter() class. The bond valence limitation here is a very good
+        be gathered from GetVoronoiNodes() class or TAPercolateFilter() class. The bond valence limitation here is a very good
         restriction to eliminate unreasonable sites.
     """
     def __init__(self, node_structure, frame_structure, bv_range, scale_factor=1):
@@ -675,7 +675,7 @@ class TADenseNeighbor(MSONable):
             """
             if use_radii_ratio:
                 # Voronoi radius: a built-in property for each site from Voronoi calculation. All sites from
-                # GetVoronoiNodes() or VAPercolateFilter()'s node structure have this property.
+                # GetVoronoiNodes() or TAPercolateFilter()'s node structure have this property.
                 site_radii = site.properties['voronoi_radius'] # the Voronoi radius for the site in group
                 criteria = close_criteria * (n_r + site_radii)
             else:
