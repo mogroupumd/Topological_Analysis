@@ -12,9 +12,9 @@ from pymatgen.io.cif import CifParser, CifWriter
 from pymatgen.core.periodic_table import Specie, Element
 from pymatgen.core.composition import Composition
 
-# Topological Analyzer dependencies
-from Topological_Analyzer.filters import *
-from Topological_Analyzer.PyVMD import cmd_by_radius
+# Topological_Analysis dependencies
+from Topological_Analysis.filters import *
+from Topological_Analysis.PyVMD import cmd_by_radius
 # TAPercolateFilter, TABvFilter, TALongFilter, TAOptimumSiteFilter, TACoulombReplusionFilter, OxidationStateFilter,
 # TADenseNeighbor
 
@@ -102,10 +102,10 @@ def Analyze_Voronoi_Nodes(args):
                  2. CIF with all sites having good bond valence;
              OxidationStateFilter has no ouput structure.
     """
-    import Topological_Analyzer
+    import Topological_Analysis
     
     # built-in radius for different species
-    va_dir = os.path.dirname(VoronoiAnalyzer.__file__)
+    va_dir = os.path.dirname(Topological_Analysis.__file__)
     radii_yaml_dir = os.path.join(va_dir, 'files/radii.yaml')
     with open(radii_yaml_dir, 'r') as f:
         radii = yaml.load(f)
