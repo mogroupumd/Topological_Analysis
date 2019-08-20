@@ -5,7 +5,7 @@ __copyright__ = "Copyright 2019, UMD Mo. Group"
 __version__ = "0.2"
 __maintainer__ = "Yunsheng Liu"
 __email__ = "yliu1240@umd.edu"
-__date__ = "Apr 26th, 2019"
+__date__ = "Aug 20th, 2019"
 
 # System dependencies
 from copy import deepcopy
@@ -71,7 +71,7 @@ class GetVoronoiNodes(MSONable):
         for site in self.original_structure:
             if not str(self.sp) in site.species_string:
                 frames.append(site)
-        self.frame_structure = Structure.from_sites(frames, charge=None, validate_proximity=False, to_unit_cell=False)
+        self.frame_structure = Structure.from_sites(frames)
         
         # run Voronoi analysis:
         error = True
@@ -143,7 +143,7 @@ class OrderFrameworkFilter():
         for i in self.original_structure.copy():
             if not str(self.sp) in i.species_string:
                 frame_list.append(i)
-        return Structure.from_sites(frame_list, charge=None, validate_proximity=False, to_unit_cell=False)
+        return Structure.from_sites(frame_list)
     
     @property
     def replace_frame(self):
@@ -166,7 +166,7 @@ class OrderFrameworkFilter():
                     new_i = PeriodicSite(radii_list[0][0], i.coords, i.lattice, to_unit_cell=False,
                                          coords_are_cartesian=True)
                     frame_list.append(new_i)
-        return Structure.from_sites(frame_list, charge=None, validate_proximity=False, to_unit_cell=False)
+        return Structure.from_sites(frame_list)
     
 
 class OxidationStateFilter():
@@ -254,7 +254,7 @@ class TAPercolateFilter(MSONable):
         for i in struct:
             if not str(self.sp) in i.species_string:
                 framework.append(i)
-        frame_structure = Structure.from_sites(framework, charge=None, validate_proximity=False, to_unit_cell=False)
+        frame_structure = Structure.from_sites(framework)
         
         # free sphere parameters:
         free_sphere_params = get_free_sphere_params(frame_structure, rad_dict=self.rs, probe_rad=0.1)
@@ -295,8 +295,7 @@ class TAPercolateFilter(MSONable):
                 new_node = PeriodicSite(str(self.sp), node.coords, node.lattice, to_unit_cell=False, coords_are_cartesian=True,
                                     properties=properties)
                 new_list.append(new_node)
-            results['Voronoi_structure'] = Structure.from_sites(new_list, charge=None, validate_proximity=False,
-                                                                to_unit_cell=False).copy()
+            results['Voronoi_structure'] = Structure.from_sites(new_list).copy()
             
             new_list = []
             for node in node_struct_access:
@@ -304,8 +303,7 @@ class TAPercolateFilter(MSONable):
                 new_node = PeriodicSite(str(self.sp), node.coords, node.lattice, to_unit_cell=False, coords_are_cartesian=True,
                                     properties=properties)
                 new_list.append(new_node)
-            results['Voronoi_accessed_node_structure'] = Structure.from_sites(new_list, charge=None, validate_proximity=False,
-                                                                              to_unit_cell=False).copy()
+            results['Voronoi_accessed_node_structure'] = Structure.from_sites(new_list).copy()
             return results
     
     @property
@@ -388,7 +386,7 @@ class TACoulombReplusionFilter(MSONable):
                 pruned_v_nodes.append(node)
         
         if pruned_v_nodes:
-            tmp_structure = Structure.from_sites(pruned_v_nodes, charge=None, validate_proximity=False, to_unit_cell=False)
+            tmp_structure = Structure.from_sites(pruned_v_nodes)
             tmp_structure.sort()
             return tmp_structure.copy()
         else:
@@ -449,7 +447,7 @@ class TABvFilter(MSONable):
                 good_node_list.append(new_site)
         
         if len(good_node_list) != 0:
-            new_struct = Structure.from_sites(good_node_list, charge=None, validate_proximity=False, to_unit_cell=False)
+            new_struct = Structure.from_sites(good_node_list)
             new_struct.sort()
         else:
             new_struct = None
@@ -570,7 +568,7 @@ class TADenseNeighbor(MSONable):
         for i in pruned_nodes_lists:
             for j in i:
                 pruned_nodes.append(j)
-        pruned_structure = Structure.from_sites(pruned_nodes, charge=None, validate_proximity=False, to_unit_cell=False)
+        pruned_structure = Structure.from_sites(pruned_nodes)
         pruned_structure.sort()
         return pruned_structure.copy()
     
@@ -911,11 +909,10 @@ class TAOptimumSiteFilter(MSONable):
                                               coords_are_cartesian=True, properties=properties))
             else:
                 frame_list.append(site)
-        self.framework = Structure.from_sites(frame_list, charge=None, validate_proximity=False, to_unit_cell=False)
+        self.framework = Structure.from_sites(frame_list)
         if self.use_exp:
             if self.sort.lower() != 'radius':
-                self.site_structure = Structure.from_sites(node_list, charge=None, validate_proximity=False,
-                                                           to_unit_cell=False)
+                self.site_structure = Structure.from_sites(node_list)
             else:
                 raise Exception('Experimental sites don\'t have Voronoi radius...')
         else:
@@ -1067,8 +1064,7 @@ class TAOptimumSiteFilter(MSONable):
         
         final_list = self.optimize_list(single_list, self.d, self.sort)
         # update the site structure
-        self.site_structure = Structure.from_sites(final_list, charge=None, validate_proximity=False,
-                                                   to_unit_cell=False).copy()
+        self.site_structure = Structure.from_sites(final_list).copy()
         # update the final structure
         new_frame = self.framework.copy()
         for node in self.site_structure:
@@ -1091,8 +1087,7 @@ class TAOptimumSiteFilter(MSONable):
         
         final_list = self.optimize_list(single_list, self.d, self.sort)
         # update the site structure
-        self.site_structure = Structure.from_sites(final_list, charge=None, validate_proximity=False,
-                                                   to_unit_cell=False).copy()
+        self.site_structure = Structure.from_sites(final_list).copy()
         # update the final structure
         new_frame = self.framework.copy()
         for node in self.site_structure:
