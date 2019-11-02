@@ -55,3 +55,4 @@ To use the VMD command lines, simply copy and paste the command line file conten
 # Citing the Topological_Analyzer
 
 If you use the Topological_Analyzer extensively, you may want to cite the original publication:
+Xingfeng He1, Qiang Bai1, Yunsheng Liu, Adelaide M. Nolan, Chen Ling, Yifei Mo*, “Crystal Structural Framework of Lithium Super-Ionic Conductors”, Advanced Energy Materials 9, 1902078 (2019)  https://doi.org/10.1002/aenm.201902078
