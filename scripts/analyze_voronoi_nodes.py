@@ -28,8 +28,8 @@ __date__ = "Jun 21st, 2019"
 # Preparation
 yaml = YAML()
 
-# customized directory to specify Topological_Analyzer is if it's not in PYTHONPATH or other python directory
-# base_dir = '/Users/yunshengliu'
+# customized directory to specify Topological_Analysis is if it's not in PYTHONPATH or other python directory
+# base_dir = '/Users/Base/Directory'
 # if not base_dir in sys.path:
 #     sys.path.append(base_dir)
 
