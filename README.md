@@ -25,7 +25,7 @@ monty (https://materialsvirtuallab.github.io/monty/)
 # Installation
 
 1. Make sure all dependencies are installed and the executing environment is Python 2;
-2. Add the library to your Python path: $export PYTHONPATH="/your/directory/Topological_Analyzer/:$PYTHONPATH";
+2. Add the library to your Python path: $export PYTHONPATH="/your/directory/Topological_Analysis/:$PYTHONPATH";
 3. Add /Topological_Analyzer/scripts/ to your PATH: $export PATH="/your/directory/Topological_Analyzer/scripts/:$PATH";
 4. Run 'analyze_Voronoi_nodes.py' for analysis or import filters in your Python programs.
 
